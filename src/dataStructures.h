@@ -12,6 +12,9 @@ struct LidarPoint { // single lidar point in space
 
 struct BoundingBox { // bounding box around a classified object (contains both 2D and 3D data)
 
+    BoundingBox() : boxID(-1), trackID(-1), classID(-1), confidence(-1) {} // default constructor
+
+    // or do int boxID = -1;
     int boxID; // unique identifier for this bounding box
     int trackID; // unique identifier for the track to which this bounding box belongs
 
@@ -22,6 +25,10 @@ struct BoundingBox { // bounding box around a classified object (contains both 2
     std::vector<LidarPoint> lidarPoints; // Lidar 3D points which project into 2D image roi
     std::vector<cv::KeyPoint> keypoints; // keypoints enclosed by 2D roi
     std::vector<cv::DMatch> kptMatches; // keypoint matches enclosed by 2D roi
+
+    bool valid() {
+        return (boxID != -1);
+    }
 };
 
 struct DataFrame { // represents the available sensor information at the same time instance

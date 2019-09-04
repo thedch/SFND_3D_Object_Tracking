@@ -156,13 +156,17 @@ void computeTTCLidar(std::vector<LidarPoint> &lidarPointsPrev,
 void matchBoundingBoxes(std::vector<cv::DMatch> &matches, std::map<int, int> &bbBestMatches,
                         DataFrame &prevFrame, DataFrame &currFrame) {
     // currFrame->kptMatches == matches
-    std::cout << "Matches size " << matches.size() << " currFrames size " << currFrame.kptMatches.size() << std::endl;
-    std::cout << "prevFrame size " << prevFrame.kptMatches.size() << std::endl;
-    std::cout << "prevFrame keypt size " << prevFrame.keypoints.size() << std::endl;
-    std::cout << "currFrame keypt size " << currFrame.keypoints.size() << std::endl;
+    // std::cout << "Matches size " << matches.size() << " currFrames size " << currFrame.kptMatches.size() << std::endl;
+    // std::cout << "prevFrame size " << prevFrame.kptMatches.size() << std::endl;
+    // std::cout << "prevFrame keypt size " << prevFrame.keypoints.size() << std::endl;
+    // std::cout << "currFrame keypt size " << currFrame.keypoints.size() << std::endl;
 
-    std::cout << "prevFrame boundingBoxes size " << prevFrame.boundingBoxes.size() << std::endl;
-    std::cout << "currFrame boundingBoxes size " << currFrame.boundingBoxes.size() << std::endl;
+    // std::cout << "prevFrame boundingBoxes size " << prevFrame.boundingBoxes.size() << std::endl;
+    // std::cout << "currFrame boundingBoxes size " << currFrame.boundingBoxes.size() << std::endl;
+
+    std::vector<int> _row(currFrame.boundingBoxes.size(), 0);
+    std::vector<vector<int>> counter(prevFrame.boundingBoxes.size(), _row);
+
 
     for (auto match : matches) {
         int _queryIdx = match.queryIdx;
@@ -170,20 +174,43 @@ void matchBoundingBoxes(std::vector<cv::DMatch> &matches, std::map<int, int> &bb
 
         cv::KeyPoint prevkeypt = prevFrame.keypoints[_queryIdx];
         cv::KeyPoint curkeypt = currFrame.keypoints[_trainIdx];
-        int prev_x = prevkeypt.pt.x;
-        int prev_y = prevkeypt.pt.y;
 
-        int cur_x = curkeypt.pt.x;
-        int cur_y = curkeypt.pt.y;
+        // for each point, figure out what bounding box (if any) contains it
+        BoundingBox prev_bbox;
+        for (auto bbox : prevFrame.boundingBoxes) {
+            if (bbox.roi.contains(prevkeypt.pt)) { // Should I handle multiple bboxes overlapping?
+                prev_bbox = bbox;
+                break;
+            }
+        }
 
-        std::cout << "Prev pt (" << prev_x << " " << prev_y << ")" << std::endl;
-        std::cout << "Curr pt (" << cur_x << " " << cur_y << ")" << std::endl;
-        std::cout << "***************************" << std::endl;
+        if (!prev_bbox.valid()) {
+            break; // point not inside any boxes!
+        }
 
-        // break;
+        BoundingBox curr_bbox;
+        for (auto bbox : currFrame.boundingBoxes) {
+            if (bbox.roi.contains(curkeypt.pt)) {
+                curr_bbox = bbox;
+                break;
+            }
+        }
+
+        if (!curr_bbox.valid()) {
+            break; // point not inside any boxes!
+        }
+
+        // if we've made it this far, it means that the last frame's pt has a
+        // bbox, and the current frame's pt has a bbox
+        counter[prev_bbox.boxID][curr_bbox.boxID]++;
     }
 
-    // use key pt matches between prev and current images (outer loop)
-    // figure out which keypts are within bounding boxes in both frames
-    // those boxIDs should be in the multimap
+    for (auto bbox : prevFrame.boundingBoxes) {
+        vector<int> frequencies = counter[bbox.boxID];
+        vector<int>::iterator max_elem = max_element(frequencies.begin(), frequencies.end());
+        int arg_max = std::distance(frequencies.begin(), max_elem);
+        if (frequencies[arg_max] > 1) { // ensure multiple keypts link the two boxes
+            bbBestMatches.insert(std::make_pair(bbox.boxID, arg_max));
+        }
+    }
 }
