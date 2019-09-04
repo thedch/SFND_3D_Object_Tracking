@@ -18,8 +18,7 @@ void clusterLidarWithROI(std::vector<BoundingBox> &boundingBoxes, std::vector<Li
     cv::Mat X(4, 1, cv::DataType<double>::type);
     cv::Mat Y(3, 1, cv::DataType<double>::type);
 
-    for (auto it1 = lidarPoints.begin(); it1 != lidarPoints.end(); ++it1)
-    {
+    for (auto it1 = lidarPoints.begin(); it1 != lidarPoints.end(); ++it1) {
         // assemble vector for matrix-vector-multiplication
         X.at<double>(0, 0) = it1->x;
         X.at<double>(1, 0) = it1->y;
@@ -33,8 +32,7 @@ void clusterLidarWithROI(std::vector<BoundingBox> &boundingBoxes, std::vector<Li
         pt.y = Y.at<double>(1, 0) / Y.at<double>(0, 2);
 
         vector<vector<BoundingBox>::iterator> enclosingBoxes; // pointers to all bounding boxes which enclose the current Lidar point
-        for (vector<BoundingBox>::iterator it2 = boundingBoxes.begin(); it2 != boundingBoxes.end(); ++it2)
-        {
+        for (vector<BoundingBox>::iterator it2 = boundingBoxes.begin(); it2 != boundingBoxes.end(); ++it2) {
             // shrink current bounding box slightly to avoid having too many outlier points around the edges
             cv::Rect smallerBox;
             smallerBox.x = (*it2).roi.x + shrinkFactor * (*it2).roi.width / 2.0;
@@ -43,16 +41,14 @@ void clusterLidarWithROI(std::vector<BoundingBox> &boundingBoxes, std::vector<Li
             smallerBox.height = (*it2).roi.height * (1 - shrinkFactor);
 
             // check wether point is within current bounding box
-            if (smallerBox.contains(pt))
-            {
+            if (smallerBox.contains(pt)) {
                 enclosingBoxes.push_back(it2);
             }
 
         } // eof loop over all bounding boxes
 
-        // check wether point has been enclosed by one or by multiple boxes
-        if (enclosingBoxes.size() == 1)
-        { 
+        // check whether point has been enclosed by one or by multiple boxes
+        if (enclosingBoxes.size() == 1) {
             // add Lidar point to bounding box
             enclosingBoxes[0]->lidarPoints.push_back(*it1);
         }
@@ -73,7 +69,7 @@ void show3DObjects(std::vector<BoundingBox> &boundingBoxes, cv::Size worldSize, 
         cv::Scalar currColor = cv::Scalar(rng.uniform(0,150), rng.uniform(0, 150), rng.uniform(0, 150));
 
         // plot Lidar points into top view image
-        int top=1e8, left=1e8, bottom=0.0, right=0.0; 
+        int top=1e8, left=1e8, bottom=0.0, right=0.0;
         float xwmin=1e8, ywmin=1e8, ywmax=-1e8;
         for (auto it2 = it1->lidarPoints.begin(); it2 != it1->lidarPoints.end(); ++it2)
         {
@@ -106,7 +102,7 @@ void show3DObjects(std::vector<BoundingBox> &boundingBoxes, cv::Size worldSize, 
         sprintf(str1, "id=%d, #pts=%d", it1->boxID, (int)it1->lidarPoints.size());
         putText(topviewImg, str1, cv::Point2f(left-250, bottom+50), cv::FONT_ITALIC, 2, currColor);
         sprintf(str2, "xmin=%2.2f m, yw=%2.2f m", xwmin, ywmax-ywmin);
-        putText(topviewImg, str2, cv::Point2f(left-250, bottom+125), cv::FONT_ITALIC, 2, currColor);  
+        putText(topviewImg, str2, cv::Point2f(left-250, bottom+125), cv::FONT_ITALIC, 2, currColor);
     }
 
     // plot distance markers
@@ -131,28 +127,63 @@ void show3DObjects(std::vector<BoundingBox> &boundingBoxes, cv::Size worldSize, 
 
 
 // associate a given bounding box with the keypoints it contains
-void clusterKptMatchesWithROI(BoundingBox &boundingBox, std::vector<cv::KeyPoint> &kptsPrev, std::vector<cv::KeyPoint> &kptsCurr, std::vector<cv::DMatch> &kptMatches)
-{
+void clusterKptMatchesWithROI(BoundingBox &boundingBox, std::vector<cv::KeyPoint> &kptsPrev,
+                              std::vector<cv::KeyPoint> &kptsCurr, std::vector<cv::DMatch> &kptMatches) {
     // ...
 }
 
 
 // Compute time-to-collision (TTC) based on keypoint correspondences in successive images
-void computeTTCCamera(std::vector<cv::KeyPoint> &kptsPrev, std::vector<cv::KeyPoint> &kptsCurr, 
-                      std::vector<cv::DMatch> kptMatches, double frameRate, double &TTC, cv::Mat *visImg)
-{
+void computeTTCCamera(std::vector<cv::KeyPoint> &kptsPrev, std::vector<cv::KeyPoint> &kptsCurr,
+                      std::vector<cv::DMatch> kptMatches, double frameRate, double &TTC, cv::Mat *visImg) {
     // ...
 }
 
 
 void computeTTCLidar(std::vector<LidarPoint> &lidarPointsPrev,
-                     std::vector<LidarPoint> &lidarPointsCurr, double frameRate, double &TTC)
-{
-    // ...
+                     std::vector<LidarPoint> &lidarPointsCurr, double frameRate, double &TTC) {
+    // Compute TTC using just LIDAR pts from two frames
 }
 
 
-void matchBoundingBoxes(std::vector<cv::DMatch> &matches, std::map<int, int> &bbBestMatches, DataFrame &prevFrame, DataFrame &currFrame)
-{
-    // ...
+/*
+-> TERMINOLOGY LOOKUP TABLE <-
+*----------------------------*
+| query = source = prevframe |
+| train = ref    = currframe |
+*----------------------------*
+*/
+void matchBoundingBoxes(std::vector<cv::DMatch> &matches, std::map<int, int> &bbBestMatches,
+                        DataFrame &prevFrame, DataFrame &currFrame) {
+    // currFrame->kptMatches == matches
+    std::cout << "Matches size " << matches.size() << " currFrames size " << currFrame.kptMatches.size() << std::endl;
+    std::cout << "prevFrame size " << prevFrame.kptMatches.size() << std::endl;
+    std::cout << "prevFrame keypt size " << prevFrame.keypoints.size() << std::endl;
+    std::cout << "currFrame keypt size " << currFrame.keypoints.size() << std::endl;
+
+    std::cout << "prevFrame boundingBoxes size " << prevFrame.boundingBoxes.size() << std::endl;
+    std::cout << "currFrame boundingBoxes size " << currFrame.boundingBoxes.size() << std::endl;
+
+    for (auto match : matches) {
+        int _queryIdx = match.queryIdx;
+        int _trainIdx = match.trainIdx;
+
+        cv::KeyPoint prevkeypt = prevFrame.keypoints[_queryIdx];
+        cv::KeyPoint curkeypt = currFrame.keypoints[_trainIdx];
+        int prev_x = prevkeypt.pt.x;
+        int prev_y = prevkeypt.pt.y;
+
+        int cur_x = curkeypt.pt.x;
+        int cur_y = curkeypt.pt.y;
+
+        std::cout << "Prev pt (" << prev_x << " " << prev_y << ")" << std::endl;
+        std::cout << "Curr pt (" << cur_x << " " << cur_y << ")" << std::endl;
+        std::cout << "***************************" << std::endl;
+
+        // break;
+    }
+
+    // use key pt matches between prev and current images (outer loop)
+    // figure out which keypts are within bounding boxes in both frames
+    // those boxIDs should be in the multimap
 }
