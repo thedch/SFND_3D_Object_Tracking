@@ -150,8 +150,6 @@ void computeTTCLidar(std::vector<LidarPoint> &lidarPointsPrev,
     std::cout << "lidarPointsPrev size " << lidarPointsPrev.size() << std::endl;
     std::cout << "lidarPointsCurr size " << lidarPointsCurr.size() << std::endl;
 
-
-
     sort(lidarPointsPrev.begin(), lidarPointsPrev.end(), sort_lidar);
     sort(lidarPointsCurr.begin(), lidarPointsCurr.end(), sort_lidar);
 
@@ -166,8 +164,8 @@ void computeTTCLidar(std::vector<LidarPoint> &lidarPointsPrev,
     assert(prev_x > curr_x); // prev point should be farther away than current pt!
 
     double delta_x = prev_x - curr_x;
-    float speed = delta_x / frameRate;
-    TTC = curr_x / speed;
+    float speed = delta_x * frameRate; // meters per frame * frames per second
+    TTC = curr_x / speed; // meters / (meters per second)
 }
 
 

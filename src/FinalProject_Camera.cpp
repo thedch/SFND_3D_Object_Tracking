@@ -111,7 +111,6 @@ int main(int argc, const char *argv[]) {
 
         cout << "#3 : CROP LIDAR POINTS done" << endl;
 
-
         /* CLUSTER LIDAR POINT CLOUD */
 
         // associate Lidar points with camera-based ROI
