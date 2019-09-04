@@ -4,6 +4,7 @@
 #include <numeric>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
+#include <assert.h>
 
 #include "camFusion.hpp"
 #include "dataStructures.h"
@@ -139,10 +140,34 @@ void computeTTCCamera(std::vector<cv::KeyPoint> &kptsPrev, std::vector<cv::KeyPo
     // ...
 }
 
+bool sort_lidar(LidarPoint pt1, LidarPoint pt2) {
+    return (pt1.x < pt2.x);
+}
 
 void computeTTCLidar(std::vector<LidarPoint> &lidarPointsPrev,
                      std::vector<LidarPoint> &lidarPointsCurr, double frameRate, double &TTC) {
     // Compute TTC using just LIDAR pts from two frames
+    std::cout << "lidarPointsPrev size " << lidarPointsPrev.size() << std::endl;
+    std::cout << "lidarPointsCurr size " << lidarPointsCurr.size() << std::endl;
+
+
+
+    sort(lidarPointsPrev.begin(), lidarPointsPrev.end(), sort_lidar);
+    sort(lidarPointsCurr.begin(), lidarPointsCurr.end(), sort_lidar);
+
+    // get 10th percentile pt
+    LidarPoint prevpt = lidarPointsPrev[((int)lidarPointsPrev.size() * 0.1)];
+    LidarPoint currpt = lidarPointsCurr[((int)lidarPointsCurr.size() * 0.1)];
+
+    double prev_x = prevpt.x;
+    double curr_x = currpt.x;
+
+    std::cout << "Prev x=" << prev_x << " Current x=" << curr_x << std::endl;
+    assert(prev_x > curr_x); // prev point should be farther away than current pt!
+
+    double delta_x = prev_x - curr_x;
+    float speed = delta_x / frameRate;
+    TTC = curr_x / speed;
 }
 
 
